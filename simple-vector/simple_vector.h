@@ -64,11 +64,8 @@ public:
 
     SimpleVector& operator=(const SimpleVector& rhs) {
         if(&array_ != &rhs.array_){
-            ArrayPtr<Type> array_tmp(rhs.GetCapacity());
-            std::copy(rhs.begin(), rhs.end(), array_tmp.Get());
-            array_.swap(array_tmp);
-            size_ = rhs.GetSize();
-            capacity_ = rhs.GetCapacity();
+            SimpleVector vector_tmp(rhs);
+            (*this).swap(vector_tmp);
         }
         return *this;
     }
@@ -84,14 +81,18 @@ public:
     // При нехватке места увеличивает вдвое вместимость вектора
     void PushBack(const Type& item) {
         size_t size_tmp = size_;
-        if(size_ == capacity_) this->Resize(2*capacity_ + 1);
+        if(size_ == capacity_){
+            this->Resize(2*capacity_ + 1);
+        } 
         this->array_[size_tmp] = item;
         this->size_ = std::move(size_tmp + 1);
     }
 
     void PushBack(Type&& item) {
         size_t size_tmp = size_;
-        if(size_ == capacity_) this->Resize(2*capacity_ + 1);
+        if(size_ == capacity_){
+            this->Resize(2*capacity_ + 1);
+        } 
         this->array_[size_tmp] = std::move(item);
         this->size_ = std::move(size_tmp + 1);
     }
@@ -114,22 +115,18 @@ public:
         return &array_[n];
     }
     
-    void PreInsert(const size_t& n){
-        size_t size_tmp = size_;
-        if(size_ == capacity_) this->Resize(2*capacity_ + 1); 
-        for(Type *i = &array_[size_tmp-1]; i >= &array_[n]; --i) *(i + 1) = std::move(*i);
-        size_ = std::move(size_tmp + 1);
-    }
-
     // "Удаляет" последний элемент вектора. Вектор не должен быть пустым
     void PopBack () noexcept {
-        if(!IsEmpty()) --size_;
+        assert(!IsEmpty());
+        --size_;
     }
     
     // Удаляет элемент вектора в указанной позиции
     Iterator Erase(ConstIterator pos) {
         size_t n = pos - begin();
-        for(Type *i = &array_[n] ; i < &array_[size_ - 1]; ++i) *i = std::move(*(i + 1));
+        for(Type *i = &array_[n] ; i < &array_[size_ - 1]; ++i){
+            *i = std::move(*(i + 1));   
+        }
         --size_;
         return &array_[n];
     }
@@ -171,14 +168,18 @@ public:
     // Возвращает константную ссылку на элемент с индексом index
     // Выбрасывает исключение std::out_of_range, если index >= size
     Type& At(size_t index) {
-        if(index >= size_) throw std::out_of_range("Array size exceeding");
+        if(index >= size_){
+            throw std::out_of_range("Array size exceeding");  
+        } 
         return array_[index];
     }
 
     // Возвращает константную ссылку на элемент с индексом index
     // Выбрасывает исключение std::out_of_range, если index >= size
     const Type& At(size_t index) const {
-        if(index >= size_) throw std::out_of_range("Array size exceeding");
+        if(index >= size_){
+            throw std::out_of_range("Array size exceeding");  
+        } 
         return array_[index]; 
     }
 
@@ -191,7 +192,9 @@ public:
     // При увеличении размера новые элементы получают значение по умолчанию для типа Type
     void Resize(size_t new_size) {
         if(new_size <= size_) {}
-        else if(new_size <= capacity_) Fill(begin() + size_, begin() + new_size);
+        else if(new_size <= capacity_){
+            Fill(begin() + size_, begin() + new_size); 
+        } 
         else {
             ArrayPtr<Type> array_tmp(new_size);
             std::copy(std::make_move_iterator(begin()), std::make_move_iterator(begin() + size_), array_tmp.Get());
@@ -203,7 +206,9 @@ public:
     }
     
     void Fill(Iterator start, Iterator stop){
-        for(Iterator i = start; i != stop; ++i) *i = Type{};
+        for(Iterator i = start; i != stop; ++i){
+            *i = Type{};
+        } 
     }
     
     // Для пустого массива может быть равен (или не равен) nullptr
@@ -241,9 +246,21 @@ public:
         return end();
     }
 private:
-size_t size_ = 0;
-size_t capacity_ = 0;
-ArrayPtr<Type> array_;
+    size_t size_ = 0;
+    size_t capacity_ = 0;
+    ArrayPtr<Type> array_;
+
+    void PreInsert(const size_t& n){
+        size_t size_tmp = size_;
+        if(size_ == capacity_){
+            this->Resize(2*capacity_ + 1);  
+        }  
+        for(Type *i = &array_[size_tmp-1]; i >= &array_[n]; --i){
+            *(i + 1) = std::move(*i);
+        } 
+        size_ = std::move(size_tmp + 1);
+    }
+
 };
 
 template <typename Type>
@@ -253,7 +270,7 @@ inline bool operator==(const SimpleVector<Type>& lhs, const SimpleVector<Type>& 
 
 template <typename Type>
 inline bool operator!=(const SimpleVector<Type>& lhs, const SimpleVector<Type>& rhs) {
-    return !std::equal(lhs.begin(), lhs.end(), rhs.begin());;
+    return !(lhs == rhs);
 }
 
 template <typename Type>
